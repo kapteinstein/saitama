@@ -47,7 +47,9 @@ class Bot_thread(threading.Thread):
         print ("Exiting " + self.name)
 
 def main():
-    client = EchoBot('kongerik1@gmail.com', 'Qq888888')
+    with open('passwd.txt', 'r') as f:
+        passwd = [a.strip() for a in f.readlines()]
+    client = EchoBot(passwd[0], passwd[1])
 
     # Create new threads
     thread1 = Bot_thread(1, "listener", client)

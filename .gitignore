@@ -200,3 +200,4 @@ dkms.conf
 ### DIV ###
 out/
 bin/
+passwd.txt
