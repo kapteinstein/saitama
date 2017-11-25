@@ -3,6 +3,7 @@ from fbchat.models import *
 import time
 import requests
 import threading
+import random
 
 # Subclass fbchat.Client and override required methods
 class EchoBot(Client):
@@ -28,6 +29,13 @@ class EchoBot(Client):
             joke.encoding = 'utf-8'
             self.send(Message(text=joke.text),
                 thread_id=thread_id, thread_type=thread_type)
+
+        # send pic of best boi
+        if message_object.text.startswith('@eirik'):
+            r = random.randint(1, 3)
+            self.sendRemoteImage(f'https://spaghettiprojecti.no/eirik/{r}.jpg',
+                message=Message(text='best boi ❤️'), thread_id=thread_id,
+                thread_type=thread_type)
 
         if message_object.text.startswith('@logout'):
             self.stopListening()
