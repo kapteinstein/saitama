@@ -2,6 +2,7 @@ from fbchat import log, Client
 from fbchat.models import *
 import time
 import requests
+import threading
 
 # Subclass fbchat.Client and override required methods
 class EchoBot(Client):
@@ -28,10 +29,41 @@ class EchoBot(Client):
             self.send(Message(text=joke.text),
                 thread_id=thread_id, thread_type=thread_type)
 
+        if message_object.text.startswith('@logout'):
+            self.stopListening()
+
+class Bot_thread(threading.Thread):
+    def __init__(self, threadID, name, client):
+        threading.Thread.__init__(self)
+        self.threadID = threadID
+        self.name = name
+        self.client = client
+    def run(self):
+        print ("Starting " + self.name)
+        if self.name == "listener":
+            self.client.listen()
+        if self.name == "timer":
+            print("halla fra timer")
+        print ("Exiting " + self.name)
+
 def main():
     client = EchoBot('kongerik1@gmail.com', 'Qq888888')
-    client.listen()
-    client.logout()
+
+    # Create new threads
+    thread1 = Bot_thread(1, "listener", client)
+    thread2 = Bot_thread(2, "timer", client)
+
+    # Start new Threads
+    thread1.start()
+    thread2.start()
+    thread1.join()
+    thread2.join()
+
+    if client.isLoggedIn():
+        client.logout()
+
+    print ("Exiting Main Thread")
+
 
 if __name__ == "__main__":
     main()
