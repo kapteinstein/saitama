@@ -24,6 +24,7 @@ class EchoBot(Client):
         if message_object.text.startswith('@dad'):
             joke = requests.get('https://icanhazdadjoke.com/',
                     headers={'Accept': 'text/plain'})
+            joke.encoding = 'utf-8'
             self.send(Message(text=joke.text),
                 thread_id=thread_id, thread_type=thread_type)
 
