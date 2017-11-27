@@ -4,6 +4,10 @@ import time
 import requests
 import threading
 import random
+import datetime
+
+_BASE_URL = 'http://spaghettiprojecti.no/saitama/'
+_THREAD_ID = '1434497743266652'
 
 # Subclass fbchat.Client and override required methods
 class EchoBot(Client):
@@ -40,6 +44,22 @@ class EchoBot(Client):
         if message_object.text.startswith('@logout'):
             self.stopListening()
 
+    def timer(self):
+        sent_today = False
+        while not self.logout_request:
+            time.sleep(1)
+            now = datetime.datetime.now()
+            if (now.month == 12 and now.day <= 24 and now.hour == 8 and not
+                    sent_today):
+                url = _BASE_URL + 'julekalender/' + str(now.day) + '.jpeg'
+                msg = 'saitamas julekalender, luke ' + str(now.day)
+                self.sendRemoteImage(url, message=Message(text=msg),
+                        thread_id=_THREAD_ID, thread_type=thread_type.GROUP)
+                sent_today = True
+            if now.hour == 0 and sent_today:
+                sent_today = False
+
+
 class Bot_thread(threading.Thread):
     def __init__(self, threadID, name, client):
         threading.Thread.__init__(self)
@@ -51,13 +71,15 @@ class Bot_thread(threading.Thread):
         if self.name == "listener":
             self.client.listen()
         if self.name == "timer":
-            print("halla fra timer")
+            self.client.timer()
         print ("Exiting " + self.name)
+
 
 def main():
     with open('passwd.txt', 'r') as f:
         passwd = [a.strip() for a in f.readlines()]
     client = EchoBot(passwd[0], passwd[1])
+    client.logout_request = False
 
     # Create new threads
     thread1 = Bot_thread(1, "listener", client)
