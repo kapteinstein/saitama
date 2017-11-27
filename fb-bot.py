@@ -22,12 +22,12 @@ class EchoBot(Client):
             return
 
         # echo if message start with @echo
-        if message_object.text.startswith('@echo'):
+        if message_object.text.startswith('!echo'):
             self.send(Message(text=message_object.text[6::]),
                 thread_id=thread_id, thread_type=thread_type)
 
         # send dad joke if message start with @dad
-        if message_object.text.startswith('@dad'):
+        if '!dad' in message_object.text:
             joke = requests.get('https://icanhazdadjoke.com/',
                     headers={'Accept': 'text/plain'})
             joke.encoding = 'utf-8'
@@ -35,13 +35,14 @@ class EchoBot(Client):
                 thread_id=thread_id, thread_type=thread_type)
 
         # send pic of best boi
-        if message_object.text.startswith('@eirik'):
+        if '!eirik' in message_object.text:
             r = random.randint(1, 3)
-            self.sendRemoteImage(f'https://spaghettiprojecti.no/eirik/{r}.jpg',
-                message=Message(text='best boi ❤️'), thread_id=thread_id,
-                thread_type=thread_type)
+            url = _BASE_URL + 'eirik/' + str(r) + '.jpeg'
+            self.sendRemoteImage(url, message=Message(text='best boi ❤️'),
+                    thread_id=thread_id, thread_type=thread_type)
 
-        if message_object.text.startswith('@logout'):
+        if '!logout' in message_object.text:
+            self.logout_request = True
             self.stopListening()
 
     def timer(self):
