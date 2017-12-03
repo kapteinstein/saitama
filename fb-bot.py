@@ -1,10 +1,18 @@
 from fbchat import log, Client
 from fbchat.models import *
+from geeteventbus.subscriber import subscriber
+from geeteventbus.eventbus import eventbus
+from geeteventbus.event import event
+
 import time
 import requests
 import threading
 import random
 import datetime
+
+#class types
+ID_TIMER = 0;
+ID_LISTENER = 1;
 
 _BASE_URL = 'http://spaghettiprojecti.no/saitama/'
 _THREAD_ID = '1434497743266652'
@@ -60,6 +68,13 @@ class EchoBot(Client):
             if now.hour == 0 and sent_today:
                 sent_today = False
 
+    def stopClient(self):
+        while not self.logout_request:
+            time.sleep(1)
+        self.logout_request = True
+        print("Stopping listening")
+        self.stopListening()
+
 
 class Bot_thread(threading.Thread):
     def __init__(self, threadID, name, client):
@@ -68,6 +83,7 @@ class Bot_thread(threading.Thread):
         self.name = name
         self.client = client
     def run(self):
+        self.runFlag = True
         print ("Starting " + self.name)
         if self.name == "listener":
             self.client.listen()
@@ -75,22 +91,60 @@ class Bot_thread(threading.Thread):
             self.client.timer()
         print ("Exiting " + self.name)
 
+    def stopRequest(self):
+        print("Stopping thread {} {}".format(self.threadID,self.name))
+        self.client.stopClient()
+
+
+
+class ThreadHandler():
+    def __init__():
+        self.threads = []
+    def addThread(threadObject):
+        self.threads.append(threadObject)
+
+    def startThreads():
+        for t in self.threads:
+            t.start()
+
+    def joinThreads():
+        for t in self.threads:
+            t.join()
+        
+class TimeSubsrciber(threading.Thread, subscriber):
+    def process(self,timeEvent):
+        if not isinstance(timeEvent):
+            print("Invalid event type passed")
+            return
+        print(timeEvent.getTopic())
+
+class GenericEvent():
+    def __init__(self,topic,data):
+        self._topic = topic
+        self._data = data
+    def getTopic(): return self._topic
+    def getData(): return self._data
+
 
 def main():
     with open('passwd.txt', 'r') as f:
         passwd = [a.strip() for a in f.readlines()]
     client = EchoBot(passwd[0], passwd[1])
     client.logout_request = False
+    # Create Thread Handler
+    th = ThreadHandler()
 
     # Create new threads
-    thread1 = Bot_thread(1, "listener", client)
-    thread2 = Bot_thread(2, "timer", client)
-
+    th.addThread(Bot_thread(1, "listener", client))
+    th.addThread(Bot_thread(2, "timer", client))
+    th.addThread(TimeSubscriber())
+    
     # Start new Threads
-    thread1.start()
-    thread2.start()
-    thread1.join()
-    thread2.join()
+    th.startThreads()
+        
+    client.stopClient()
+
+    th.joinThreads()
 
     if client.isLoggedIn():
         client.logout()
