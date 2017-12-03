@@ -24,8 +24,9 @@ Edit execute_event to fit execution process of event
 The Queuer must be added as a subscriber to the event bus on the desired topics
 """
 class Time_event_queuer(threading.Thread,subscriber):
-    def __init__(self,cv):
+    def __init__(self,eb,cv):
         super().__init__()
+        self.eb = eb #Event Bus
         self.cv = cv  #Conditional Variable, used for notifying on events
         self.heap = []
         self.execute_flag = False
@@ -34,6 +35,8 @@ class Time_event_queuer(threading.Thread,subscriber):
     #Executes the event on top of heap. Must be popped
     def execute_event(self):
         e = heapq.heappop(self.heap)
+        if(isinstance(e[1],event)):
+            self.eb.post(e[1])
         print("{} - Executing {}".format(datetime.now(),e[1]))
 
     #Listens on the bus 
@@ -47,6 +50,12 @@ class Time_event_queuer(threading.Thread,subscriber):
             self.start_queue_loop()
         elif new_event.get_topic() == EVENTID_QUEUE_STOP:
             self.stop_queue_loop()
+
+    def run(self):
+        self.eb.register_consumer(self,EVENTID_TIME)
+        self.eb.register_consumer(self,EVENTID_QUEUE_START)
+        self.eb.register_consumer(self,EVENTID_QUEUE_STOP)
+        self.start_queue_loop()
 
     #Starts the queue loop on EVENTID_QUEUE_START event
     def start_queue_loop(self):
@@ -159,11 +168,12 @@ def main():
     cv = threading.Condition()
 
     # Create new threads
-    teq = Time_event_queuer(cv)
+    teq = Time_event_queuer(eb,cv)
+    teq.start()
     th.add_thread(teq)
     
     # Start new Threads
-    th.start_threads()
+    #th.start_threads()
 
     # Post Information
     teq.post_time_event(eb,"post1",timedelta(seconds=3))
@@ -172,9 +182,16 @@ def main():
     time.sleep(2)
     teq.post_time_event(eb,"post3",timedelta(seconds=6))
     time.sleep(1)
+    teq.post_time_event(eb,"post4",timedelta(seconds=1))
+    time.sleep(1)
+    teq.post_time_event(eb,"post5",timedelta(seconds=2))
+    time.sleep(1)
     
     # Stopping threads
-    th.join_threads()
+    #th.join_threads()
+    eb.post(event(EVENTID_QUEUE_STOP,""))
+    teq.join()
+    
     
 
     print ("Exiting Main Thread")
