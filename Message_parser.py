@@ -31,11 +31,14 @@ class Message_parser():
             print("Posting Stop event")
             self.eb.post(event(EVENTID_CLIENT_STOP,""))
 
-        if text.startswith('!rm'):
+        elif text.startswith('!rm'):
             self.parseRemindMe(message_data)
 
-        if text.startswith('!help'):
+        elif text.startswith('!help'):
             self.parseHelp(message_data)
+
+        elif text.startswith('!repeat'):
+            self.parseRepeat(message_data)
 
     def get_message_time(self,i,c):
         if c == 's':
@@ -80,6 +83,14 @@ class Message_parser():
             message_data.set_text("Help is on the way")
             Fb_client.post_message_event(self.eb,message_data)
 
+    def parseRepeat(self,message_data):
+        print("Parsing Repeat")
+        message_data.set_text("Reapting This lol")
+        send_message_event = event(EVENTID_CLIENT_SEND,message_data)
+        start_time = datetime.now() + timedelta(seconds=5)
+        repeat_delta = timedelta(seconds=5)
+        repeat_event = Repeating_event_object(send_message_event,start_time,repeat_delta)
+        Time_event_queuer.post_repeating_event(self.eb,repeat_event)
             
 
 

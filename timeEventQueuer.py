@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 import heapq
 
 EVENTID_TIME = "Topic: Time Event"
+EVENTID_REPEATING = "Topic: Repeating Event"
 EVENTID_QUEUE_START = "Topic: Start Event Queue"
 EVENTID_QUEUE_STOP = "Topic: Stop Event Queue"
 
@@ -36,11 +37,18 @@ class Time_event_queuer(threading.Thread,subscriber):
     def execute_event(self):
         e = heapq.heappop(self.heap)
         if(isinstance(e[1],event)):
-            self.eb.post(e[1])
-        print("{} - Executing {}".format(datetime.now(),e[1]))
+            new_event = e[1]
+            if(new_event.get_topic() == EVENTID_REPEATING):
+                repeating_event = new_event.get_data()
+                self.eb.post(repeating_event.get_event())
+                print("POSTING NEW TIME EVEEENT")
+                Time_event_queuer.post_repeating_event(self.eb,repeating_event)
+            else:
+                self.eb.post(e[1])
 
     #Listens on the bus 
     def process(self,new_event):
+        print(new_event.get_topic())
         if not isinstance(new_event,event):
             print("Invalid event type passed")
             return
@@ -96,7 +104,7 @@ class Time_event_queuer(threading.Thread,subscriber):
                 return
             print("TimeQueuer Idle - Execute _flag: {}".format(self.execute_flag))
             with self.cv:
-                self.cv.wait(3)
+                self.cv.wait()
         print("Queuer Stopped from Idle State")
                 
     #Calculage sleep time until top of heap event
@@ -133,9 +141,30 @@ class Time_event_queuer(threading.Thread,subscriber):
     @staticmethod
     def post_time_event(eb,data,delta_time):
         event_time = datetime.now() + delta_time #ms removed
-        print("{} scheduled at {}".format(data,event_time))
+        print("EVENT scheduled at {}".format(event_time))
         data = (event_time,data)
         eb.post(event(EVENTID_TIME,data))
+
+    @staticmethod
+    def post_repeating_event(eb,repeating_event_object):
+        print("Posting REPEATING event")
+        event_time = repeating_event_object.occurence_start
+        now = datetime.now()
+        while(now > event_time):
+            event_time += repeating_event_object.repeat_delta
+        delta_time = event_time - datetime.now()
+        Time_event_queuer.post_time_event(eb,event(EVENTID_REPEATING,repeating_event_object),
+                delta_time)
+
+class Repeating_event_object():
+    def __init__(self,event,occurence_start,repeat_delta):
+        self.event = event #Event to be posted
+        self.occurence_start = occurence_start
+        self.repeat_delta = repeat_delta
+
+    def get_event(self): return self.event
+
+
 
 class Thread_handler():
     def __init__(self,eb):
