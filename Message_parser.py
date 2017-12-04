@@ -40,7 +40,19 @@ class Message_parser():
         elif text.startswith('!repeat'):
             self.parseRepeat(message_data)
 
-    def get_message_time(self,i,c):
+    #Returns timedelta object from text on format ?w?d?h?m?s
+    def get_time_delta_from_text(self,text):
+        time_delta = timedelta(seconds=0)
+        number = "0"
+        for c in text:
+            if(c.isdigit()):
+                number += c
+            elif(c in TIME_KEYES):
+                time_delta += self.get_character_time(number,c)
+                number = "0"
+        return time_delta
+
+    def get_character_time(self,i,c):
         if c == 's':
             return timedelta(seconds = int(i))
         elif c == 'm':
@@ -53,19 +65,18 @@ class Message_parser():
     def parseRemindMe(self,message_data):
         text = message_data.get_text().split()
 
-        text_time = text[1]
-        time_delta = timedelta(seconds=0)
-        number = ""
-        for c in text_time:
-            if(c.isdigit()):
-                number += c
-            if(c in TIME_KEYES):
-                time_delta += self.get_message_time(number,c)
-                number = ""
+        if(len(text)>1):
+            text_time = text[1]
+            time_delta = self.get_time_delta_from_text(text_time)
+        else:
+            message_data.set_text("Please Specify Time: !rm ?w?d?h?m?s")
+            Fb_client.post_message_event(self.eb,message_data)
+            return
 
         text_message = "REMINDER"
         if(len(text) > 2):
             text_message += ": " +  ' '.join(text[2:])
+
         message_data.set_text(text_message)
         send_message_event = event(EVENTID_CLIENT_SEND,message_data)
         Time_event_queuer.post_time_event(self.eb,send_message_event,time_delta)
@@ -89,8 +100,9 @@ class Message_parser():
         send_message_event = event(EVENTID_CLIENT_SEND,message_data)
         start_time = datetime.now() + timedelta(seconds=5)
         repeat_delta = timedelta(seconds=5)
-        repeat_event = Repeating_event_object(send_message_event,start_time,repeat_delta)
-        Time_event_queuer.post_repeating_event(self.eb,repeat_event)
+        repeat_event = Repeating_event_object(self.eb, send_message_event,
+                start_time, repeat_delta)
+        repeat_event.queue()
             
 
 

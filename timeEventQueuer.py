@@ -42,7 +42,8 @@ class Time_event_queuer(threading.Thread,subscriber):
                 repeating_event = new_event.get_data()
                 self.eb.post(repeating_event.get_event())
                 print("POSTING NEW TIME EVEEENT")
-                Time_event_queuer.post_repeating_event(self.eb,repeating_event)
+                repeating_event.queue()
+                
             else:
                 self.eb.post(e[1])
 
@@ -145,25 +146,39 @@ class Time_event_queuer(threading.Thread,subscriber):
         data = (event_time,data)
         eb.post(event(EVENTID_TIME,data))
 
-    @staticmethod
-    def post_repeating_event(eb,repeating_event_object):
-        print("Posting REPEATING event")
-        event_time = repeating_event_object.occurence_start
-        now = datetime.now()
-        while(now > event_time):
-            event_time += repeating_event_object.repeat_delta
-        delta_time = event_time - datetime.now()
-        Time_event_queuer.post_time_event(eb,event(EVENTID_REPEATING,repeating_event_object),
-                delta_time)
 
+"""
+Repeating Event repeats itself on set intervals
+eb -  to post the events on
+event2execute - event that is to be executed, could be send message or other.
+occurence_time - start time of first event
+repeat_time - delta between repeats: defaults to two seconds
+n - number of repeats: defaults to 5
+
+to execute object do object.queue()
+"""
 class Repeating_event_object():
-    def __init__(self,event,occurence_start,repeat_delta):
-        self.event = event #Event to be posted
-        self.occurence_start = occurence_start
-        self.repeat_delta = repeat_delta
+    def __init__(self,eb,event2execute,occurence_time,repeat_time=timedelta(seconds=2),n=5):
+        self.eb = eb
+        self.event2execute = event2execute #Event to be posted
+        self.occurence_time = occurence_time
+        self.repeat_time = repeat_time
+        self.n = n #number of repeats
 
-    def get_event(self): return self.event
+    def get_event(self): return self.event2execute
 
+    def queue(self):
+        if(self.n==0):
+            print("RepeatingEvent Finished")
+            return
+        self.n-=1
+        print("Posting REPEATING event")
+        now = datetime.now()
+        while(now > self.occurence_time):
+            self.occurence_time += self.repeat_time
+        delta_time = self.occurence_time - datetime.now()
+        time_event = event( EVENTID_REPEATING, self)
+        Time_event_queuer.post_time_event(self.eb, time_event, delta_time)
 
 
 class Thread_handler():
