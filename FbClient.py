@@ -18,6 +18,7 @@ ID_LISTENER = 1;
 EVENTID_CLIENT_SEND = "Topic Message Send"
 EVENTID_CLIENT_STOP = "Topic Stop Client"
 EVENTID_CLIENT_START = "Topic Start Client"
+EVENTID_INTERNET_CHECK = "check internet status"
 
 _BASE_URL = 'http://spaghettiprojecti.no/saitama/'
 _THREAD_ID = '1434497743266652'
@@ -98,7 +99,49 @@ class Message_data():
     def get_id(self,): return self.thread_id
     def get_type(self,): return self.thread_type
 
-        
+
+class Internet_status(threading.Thread, subscriber):
+    def __init__(self, eb):
+        super().__init__()
+        self.previous = "Internet Status: Det er ikke registrert noen problemer i ditt område."
+        self.eb = eb
+        self.eb.register_consumer(self, EVENTID_INTERNET_CHECK)
+        self.msg_data = Message_data('', thread_id=_THREAD_ID,
+                thread_type=ThreadType.GROUP)
+        self.repeating_event = Repeating_event_object(eb,
+                event(EVENTID_INTERNET_CHECK, None), datetime.datetime.now(),
+                datetime.timedelta(minutes = 4))
+        self.repeating_event.queue()
+        print("internet status init")
+
+    def process(self,new_event):
+        # print("Event Recieved: {}".format(new_event.get_topic()))
+        if not isinstance(new_event, event):
+            print("Invalid event type passed")
+            return
+        if(new_event.get_topic() == EVENTID_INTERNET_CHECK):
+            self.get_status()
+
+    def get_status(self):
+        url = "https://kabel.canaldigital.no/hjelp/sok-etter-feil/?facebook=False&q=7033"
+        a = requests.get(url)
+
+        start_str = "class=\"searchresultItem\">"
+        end_str = "</h2>"
+        start = a.text.find(start_str)
+        end = a.text.find(end_str, start)
+
+        s = a.text[start+len(start_str):end]
+        s = s.replace("<h2>", "")
+        s = s.replace("&#229;", "å")  # superhacky. klarer ikke fikse utf-8
+        s = s.strip()
+        s = "Internet Status: " + s
+
+        # print("post internet status")
+        if s != self.previous:
+            self.previous = s
+            self.msg_data.set_text(s)
+            Fb_client.post_message_event(self.eb, self.msg_data)
 
         
 
@@ -111,6 +154,7 @@ def main():
     teq = Time_event_queuer(eb,cv)
     teq.start()
 
+    internet_check = Internet_status(eb)
 
     client = Fb_client(eb,parser)
     client.start()
