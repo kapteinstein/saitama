@@ -36,20 +36,22 @@ class Time_event_queuer(threading.Thread,subscriber):
     #Executes the event on top of heap. Must be popped
     def execute_event(self):
         e = heapq.heappop(self.heap)
+        # print("topic: ", e[1].get_topic())
         if(isinstance(e[1],event)):
             new_event = e[1]
             if(new_event.get_topic() == EVENTID_REPEATING):
                 repeating_event = new_event.get_data()
                 self.eb.post(repeating_event.get_event())
-                print("POSTING NEW TIME EVEEENT")
+                # print("POSTING NEW TIME EVEEENT")
                 repeating_event.queue()
                 
             else:
+                # print(e[1].get_topic())
                 self.eb.post(e[1])
 
     #Listens on the bus 
     def process(self,new_event):
-        print(new_event.get_topic())
+        # print(new_event.get_topic())
         if not isinstance(new_event,event):
             print("Invalid event type passed")
             return
@@ -142,7 +144,7 @@ class Time_event_queuer(threading.Thread,subscriber):
     @staticmethod
     def post_time_event(eb,data,delta_time):
         event_time = datetime.now() + delta_time #ms removed
-        print("EVENT scheduled at {}".format(event_time))
+        # print("EVENT scheduled at {}".format(event_time))
         data = (event_time,data)
         eb.post(event(EVENTID_TIME,data))
 
@@ -172,7 +174,7 @@ class Repeating_event_object():
             print("RepeatingEvent Finished")
             return
         self.n-=1
-        print("Posting REPEATING event")
+        # print("Posting REPEATING event")
         now = datetime.now()
         while(now > self.occurence_time):
             self.occurence_time += self.repeat_time
