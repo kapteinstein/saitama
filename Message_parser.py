@@ -1,6 +1,8 @@
 from geeteventbus.event import event
-from message_data import MessageData
+from datetime import datetime, timedelta,date
 
+from subscription import Subscription
+from message_data import MessageData
 
 from fb_client import *
 from event_constants import *
@@ -45,10 +47,12 @@ class MessageParser():
         
         elif text.startswith('!weather'):
             self.parseWeather(message_data)
+            
+        elif text.startswith('!sub'):
+            self.parseSubscription(message_data)
 
     #Returns timedelta object from text on format ?w?d?h?m?s
     def get_time_delta_from_text(self,text):
-        from datetime import datetime, timedelta
         time_delta = timedelta(seconds=0)
         number = "0"
         for c in text:
@@ -58,6 +62,26 @@ class MessageParser():
                 time_delta += self.get_character_time(number,c)
                 number = "0"
         return time_delta
+
+    def get_time_from_text(self,text):
+        a = text.split()
+        print(a)
+        for s in a:
+            if s.startswith("@"):
+                print(s)
+                td = self.get_time_delta_from_text(s[1:])
+                print(td)
+                t = (datetime.datetime.min + td).time()
+                d = datetime.date.today()
+                dt = datetime.datetime.combine(d,t)
+                if(datetime.datetime.now() > dt):
+                    dt = dt.replace(day = d.day + 1)
+                return dt
+        return datetime.datetime.now()
+
+
+            
+
 
     def get_character_time(self,i,c):
         if c == 's':
@@ -114,4 +138,19 @@ class MessageParser():
             
     def parseWeather(self,message_data):
         self.eb.post(event(EVENTID_WEATHER_CHECK,message_data))
+
+    def parseSubscription(self,message_data):
+        print("Parsing Subscription")
+        text = message_data.get_text()
+        t = text.split()[1]
+        if(t == "weather"):
+            topic = EVENTID_WEATHER_SUBSCRIPTION
+        occ = self.get_time_from_text(text)
+        interval = timedelta(days = 1)
+        sub = Subscription(topic,occ,interval,message_data)
+        sub.post(self.eb)
+
+
+
+
 

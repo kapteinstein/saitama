@@ -2,8 +2,9 @@
 from geeteventbus.subscriber import subscriber
 from geeteventbus.eventbus import eventbus
 from geeteventbus.event import event
-
 from fbchat.models import *
+
+
 import threading
 import requests
 import datetime
@@ -13,11 +14,14 @@ from event_constants import *
 from message_data import MessageData
 from repeating_event_object import RepeatingEventObject
 _THREAD_ID = '1434497743266652'
+_URL_TRONDHEIM = "https://www.yr.no/place/Norway/S%C3%B8r-Tr%C3%B8ndelag/Trondheim/Trondheim/"
+_URL_OSLO = "https://www.yr.no/place/Norway/Oslo/Oslo/Oslo/"
 class WeatherForcast(threading.Thread,subscriber):
     def __init__(self, eb):
         super().__init__()
         self.eb = eb
         self.eb.register_consumer(self, EVENTID_WEATHER_CHECK)
+        self.eb.register_consumer(self, EVENTID_WEATHER_SUBSCRIPTION)
         self.msg_data = MessageData('', thread_id=_THREAD_ID,
                 thread_type=ThreadType.GROUP)
         print("Weather Module status Init")
@@ -32,10 +36,11 @@ class WeatherForcast(threading.Thread,subscriber):
             msg_data = new_event.get_data()
             msg_data.set_text(self.get_weather())
             self.eb.post(event(EVENTID_CLIENT_SEND,msg_data))
+        if(new_event.get_topic() == EVENTID_WEATHER_SUBSCRIPTION):
+            self.handle_subscription(new_event)
 
     def get_weather(self):
-        url = "https://www.yr.no/place/Norway/S%C3%B8r-Tr%C3%B8ndelag/Trondheim/Trondheim/"
-        content = requests.get(url)
+        content = requests.get(_URL_TRONDHEIM)
           
         table_class = "class=\"yr-table yr-table-overview2 yr-popup-area\""
         table_start = content.text.find(table_class)
@@ -48,7 +53,7 @@ class WeatherForcast(threading.Thread,subscriber):
         body_content = table_content[body_start:body_end]
 
         row_end = 0
-        weather = ""
+        weather = "Weather Forecast Trondheim " + datetime.date.today().isoformat() + "\n"
         while(True):
             row_tag = "<tr>"
             row_start = body_content.find(row_tag,row_end)
@@ -90,10 +95,26 @@ class WeatherForcast(threading.Thread,subscriber):
         t_s = t.find(">",i_s)
         t_e = t.find("<",t_s)
         s = t[t_s+1:t_e].encode(sys.stdout.encoding, errors="replace").decode("utf8")
-        return s
+        a = s.split()
+        for i in range(len(a)):
+            if(a[i].isdigit()):
+                return a[i] + " m/s"
+
+    def handle_subscription(self,subscription_event):
+        sub = subscription_event.get_data()
+        occ = sub.get_occurrence()
+        interval = sub.get_interval()
+        msg_data = sub.get_data()
+        weather_event = event(EVENTID_WEATHER_CHECK,msg_data)
+        rep_event = RepeatingEventObject(self.eb,weather_event,occ,interval,7)
+        rep_event.queue()
+        print("RepeatingEvent has been queued")
+
+
+
+
+
         
-
-
     def encode_print(self,text):
         print(text.encode(sys.stdout.encoding, errors='replace'))
            

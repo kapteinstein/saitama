@@ -11,4 +11,5 @@ EVENTID_QUEUE_START = "Topic: Start Event Queue"
 EVENTID_QUEUE_STOP = "Topic: Stop Event Queue"
 
 EVENTID_WEATHER_CHECK = "Topic: Check Weather"
+EVENTID_WEATHER_SUBSCRIPTION = "Topic: Subscribe To Weather"
 
