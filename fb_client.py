@@ -15,12 +15,15 @@ import requests
 import threading
 import random
 import datetime
+import socket
 
 
 
 #class types
 ID_TIMER = 0;
 ID_LISTENER = 1;
+
+_THREAD_ID = '100001165373491'
 
 # Subclass fbchat.Client and override required methods
 class FbClient(threading.Thread,Client,subscriber):
@@ -37,6 +40,7 @@ class FbClient(threading.Thread,Client,subscriber):
         self.eb.register_consumer(self,EVENTID_CLIENT_SEND)
         self.eb.register_consumer(self,EVENTID_CLIENT_STOP)
         self.eb.register_consumer(self,EVENTID_CLIENT_START)
+
     def run(self):
         self.listen()
 
@@ -49,7 +53,7 @@ class FbClient(threading.Thread,Client,subscriber):
         # If Saitama-san is the author -> sayonara
         if author_id == self.uid:
             return
-       
+        print(thread_id)
         message_data = MessageData(message_object.text, thread_id, thread_type)
         self.parser.parse(message_data)
         print("Message parsed")
@@ -81,6 +85,13 @@ class FbClient(threading.Thread,Client,subscriber):
         self.send(Message(text=message_data.get_text()),
                 thread_id=message_data.get_id(),
                 thread_type = message_data.get_type())
+
+    def postIp(self):
+        ip = socket.gethostbyname(socket.gethostname())
+        print("Sending Ip: " + ip)
+        data = MessageData(ip,_THREAD_ID,Thread.USER);
+        data.show()
+        FbClient.post_message_event(self.eb,message_data);
 
     @staticmethod
     def post_message_event(eb,message_data):

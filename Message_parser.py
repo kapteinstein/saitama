@@ -8,6 +8,7 @@ from fb_client import *
 from event_constants import *
 
 TIME_KEYES = ['d','h','m','s']
+help_path = "help.txt"
 class MessageParser():
     def __init__(self,event_bus):
         self.eb = event_bus
@@ -15,6 +16,7 @@ class MessageParser():
     def parse(self,message_data):
         text = message_data.get_text()
         print(text)
+        print(message_data.get_id())
         # echo if message start with @echo
         if text.startswith('!echo'):
             print("Echoing")
@@ -50,6 +52,9 @@ class MessageParser():
             
         elif text.startswith('!sub'):
             self.parseSubscription(message_data)
+
+        elif text.startswith('!ip'):
+            self.parseIp(message_data)
 
     #Returns timedelta object from text on format ?w?d?h?m?s
     def get_time_delta_from_text(self,text):
@@ -122,8 +127,12 @@ class MessageParser():
             FbClient.post_message_event(self.eb,reciept_data)
 
     def parseHelp(self,message_data):
-            message_data.set_text("Help is on the way")
-            FbClient.post_message_event(self.eb,message_data)
+        help_string = ""
+        for line in open(help_path):
+            help_string += line
+        print(help_string)
+        message_data.set_text(help_string)
+        FbClient.post_message_event(self.eb,message_data)
 
     def parseRepeat(self,message_data):
         from repeating_event_object import RepeatingEventObject
@@ -150,6 +159,13 @@ class MessageParser():
         sub = Subscription(topic,occ,interval,message_data)
         sub.post(self.eb)
 
+
+    def parseIp(self,message_data):
+        ip = socket.gethostbyname(socket.gethostname())
+        print("Sending Ip: " + ip)
+        message_data.set_text(ip)
+        message_data.show()
+        FbClient.post_message_event(self.eb,message_data);
 
 
 

@@ -1,0 +1,7 @@
+=====Help====
+!logout	- Shut Down
+!echo "message"	- Echo Message
+!dad - Funny dad joke
+!rm *w*d*h*m*s "message" - Get reminded with message
+!weather - Trondheim Weather from Yr
+!sub "service" - Subscribe to service
