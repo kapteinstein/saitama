@@ -6,6 +6,7 @@ from message_data import MessageData
 
 from fb_client import *
 from event_constants import *
+from time import sleep
 
 TIME_KEYES = ['d','h','m','s']
 help_path = "help.txt"
@@ -25,16 +26,11 @@ class MessageParser():
             return
 
         # send dad joke if message start with @dad
-        if '!dad' in text:
-            print("Dading")
-            joke = requests.get('https://icanhazdadjoke.com/',
-                    headers={'Accept': 'text/plain'})
-            joke.encoding = 'utf-8'
-            message_data.set_text(joke.text)
-            FbClient.post_message_event(self.eb,message_data)
-            return
 
         if '!logout' in text:
+            message_data.set_text("Logging out")
+            FbClient.post_message_event(self.eb,message_data)
+            sleep(1)
             print("Posting Stop event")
             self.eb.post(event(EVENTID_CLIENT_STOP,""))
 
@@ -55,6 +51,22 @@ class MessageParser():
 
         elif text.startswith('!ip'):
             self.parseIp(message_data)
+
+        elif text.startswith('!capture'):
+            self.parse_snapshot(message_data)
+
+        elif '!dad' in text:
+            print("Dading")
+            joke = requests.get('https://icanhazdadjoke.com/',
+                    headers={'Accept': 'text/plain'})
+            joke.encoding = 'utf-8'
+            message_data.set_text(joke.text)
+            FbClient.post_message_event(self.eb,message_data)
+            return
+
+        elif text.startswith("!"):
+            message_data.set_text(message_data.text + " is yet to be implemented")
+            FbClient.post_message_event(self.eb,message_data)
 
     #Returns timedelta object from text on format ?w?d?h?m?s
     def get_time_delta_from_text(self,text):
@@ -83,10 +95,6 @@ class MessageParser():
                     dt = dt.replace(day = d.day + 1)
                 return dt
         return datetime.datetime.now()
-
-
-            
-
 
     def get_character_time(self,i,c):
         if c == 's':
@@ -161,12 +169,17 @@ class MessageParser():
 
 
     def parseIp(self,message_data):
-        ip = socket.gethostbyname(socket.gethostname())
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
         print("Sending Ip: " + ip)
         message_data.set_text(ip)
         message_data.show()
         FbClient.post_message_event(self.eb,message_data);
 
 
-
+    def parse_snapshot(self,message_data):
+        print("Posting snapshot event")
+        self.eb.post(event(EVENTID_CLIENT_SNAPSHOT,message_data))
 

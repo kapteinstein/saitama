@@ -16,6 +16,7 @@ import threading
 import random
 import datetime
 import socket
+import subprocess
 
 
 
@@ -40,6 +41,7 @@ class FbClient(threading.Thread,Client,subscriber):
         self.eb.register_consumer(self,EVENTID_CLIENT_SEND)
         self.eb.register_consumer(self,EVENTID_CLIENT_STOP)
         self.eb.register_consumer(self,EVENTID_CLIENT_START)
+        self.eb.register_consumer(self,EVENTID_CLIENT_SNAPSHOT)
 
     def run(self):
         self.listen()
@@ -53,7 +55,6 @@ class FbClient(threading.Thread,Client,subscriber):
         # If Saitama-san is the author -> sayonara
         if author_id == self.uid:
             return
-        print(thread_id)
         message_data = MessageData(message_object.text, thread_id, thread_type)
         self.parser.parse(message_data)
         print("Message parsed")
@@ -70,6 +71,8 @@ class FbClient(threading.Thread,Client,subscriber):
             self.stopClient()
         elif(new_event.get_topic()==EVENTID_CLIENT_START):
             self.startClient()
+        elif(new_event.get_topic()==EVENTID_CLIENT_SNAPSHOT):
+            self.send_snapshot(new_event)
 
     def startClient(self):
         self.listen()
@@ -85,6 +88,19 @@ class FbClient(threading.Thread,Client,subscriber):
         self.send(Message(text=message_data.get_text()),
                 thread_id=message_data.get_id(),
                 thread_type = message_data.get_type())
+    
+    def send_snapshot(self,message_event):
+        print("Messaging snapshot")
+        message_data = message_event.get_data()
+        name="newImage"
+        img_folder = "captures/"
+        subprocess.call(["python2","camera_service.py",img_folder,name])
+        img_path = img_folder + name + ".jpg"
+        self.sendLocalImage(img_path, message=
+                Message(text='This is a local image'),
+                thread_id=message_data.get_id(),
+                thread_type = message_data.get_type())
+
 
     def postIp(self):
         ip = socket.gethostbyname(socket.gethostname())

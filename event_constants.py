@@ -2,6 +2,7 @@
 EVENTID_CLIENT_SEND = "Topic Message Send"
 EVENTID_CLIENT_STOP = "Topic Stop Client"
 EVENTID_CLIENT_START = "Topic Start Client"
+EVENTID_CLIENT_SNAPSHOT = "Topic Snapshot Send"
 
 EVENTID_INTERNET_CHECK = "Topic:  Check internet status"
 
